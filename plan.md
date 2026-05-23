@@ -60,7 +60,7 @@ The platform is intentionally designed to demonstrate **every major distributed 
 | Consistency        | Strong: order state, payment; Eventual: search index|
 | Fault isolation    | Single service failure MUST NOT cascade             |
 | Observability      | Distributed tracing, metrics, structured logging     |
-| Security           | JWT RS256, refresh token rotation, rate limiting    |
+| Security           | JWT RS256, refresh token rotation, rate limiting, gateway identity header isolation |
 | Scalability        | Every service must be horizontally scalable         |
 
 ---
@@ -176,7 +176,8 @@ The platform is intentionally designed to demonstrate **every major distributed 
 
 ### Prometheus + Grafana
 - Spring Boot Actuator exposes `/actuator/prometheus` on each service.
-- Prometheus scrapes every 15s. Grafana dashboards show: RPS, error rate, p99 latency, JVM heap, Kafka consumer lag.
+- Prometheus scrapes via internal Kubernetes service names — never through the public API Gateway. The gateway only exposes `/actuator/health` (exact match) for liveness checks; the full `/actuator/` tree is blocked from external traffic.
+- Grafana dashboards show: RPS, error rate, p99 latency, JVM heap, Kafka consumer lag.
 
 ---
 
@@ -193,12 +194,13 @@ The platform is intentionally designed to demonstrate **every major distributed 
 /api/inventory/** → inventory-service:8083 (ADMIN only)
 /api/orders/**    → order-service:8084    (authenticated users)
 /api/payments/**  → payment-service:8085  (ADMIN only, internal)
-/api/search/**    → search-service:8087   (public)
+/api/search/**    → search-service:8087   (GET public, POST/PUT/DELETE require auth)
+/actuator/health  → internal only         (exact path match — full /actuator/ tree is NOT exposed)
 ```
 
 **Filters (ordered):**
 1. `CorrelationIdFilter` — generates UUID correlation ID, attaches as `X-Correlation-Id` request and response header. All downstream logs include this ID.
-2. `JwtAuthFilter` — validates RS256 JWT from `Authorization: Bearer` header. On success injects `X-User-Id` and `X-User-Role` headers into the mutated downstream request. Skips whitelisted paths (`/api/auth/**`, `GET /api/search/**`, `GET /api/products/**`).
+2. `JwtAuthFilter` — validates RS256 JWT from `Authorization: Bearer` header. **Identity header isolation:** `X-User-Id` and `X-User-Role` are stripped from every incoming request before any processing — client-supplied values are never trusted. On successful JWT validation, trusted values derived from the token claims are injected using `HttpHeaders.set()` (replace, not append). On public paths the same stripping applies; no identity headers reach downstream services from unauthenticated requests. Public paths: `/api/auth/**` (all methods), `GET /api/products/**`, `GET /api/search/**`, `/actuator/health` (exact match only — the full `/actuator/` tree is blocked).
 3. `RateLimitFilter` — Redis sliding window. Key: `rate:{clientIp}`. Limit: 100 requests/60 seconds. Returns HTTP 429 with `Retry-After` header if exceeded.
 
 **Circuit Breaker:** Each route has a Resilience4j circuit breaker. After 5 consecutive failures, circuit opens for 10 seconds. Fallback returns a JSON error body with a friendly message.
@@ -298,11 +300,12 @@ POST   /api/products/reindex      → Queue outbox events for all ACTIVE product
 
 **Role-Based Access Control:**
 
-Product write operations are restricted to the `ADMIN` role. The API Gateway validates the JWT and injects `X-User-Id` and `X-User-Role` headers. The product-service enforces authorization via Spring Security method-level security:
+Product write operations are restricted to the `ADMIN` role. The API Gateway validates the JWT, strips any client-supplied identity headers, and injects trusted `X-User-Id` and `X-User-Role` headers derived solely from the token claims. The product-service enforces authorization via Spring Security method-level security:
 
 ```
 HeaderAuthFilter (OncePerRequestFilter)
-  Reads X-User-Id and X-User-Role headers from the mutated gateway request
+  Reads X-User-Id and X-User-Role from the gateway-injected headers
+  (client-supplied values are stripped at the gateway before this point)
   Creates a UsernamePasswordAuthenticationToken with ROLE_<role> as a GrantedAuthority
   Registers it in the SecurityContextHolder for the duration of the request
 
@@ -310,6 +313,8 @@ HeaderAuthFilter (OncePerRequestFilter)
   Spring Security AOP checks the SecurityContext before the method executes
   Throws AccessDeniedException → returns HTTP 403 {"error":"Access denied: ADMIN role required"}
 ```
+
+> **Trust model:** `HeaderAuthFilter` trusts `X-User-Id`/`X-User-Role` only because the gateway guarantees they originate from a validated JWT. In production, a Kubernetes `NetworkPolicy` should restrict direct pod-to-pod access so downstream services are unreachable without going through the gateway.
 
 GET endpoints have no role requirement and are publicly accessible without a token.
 
