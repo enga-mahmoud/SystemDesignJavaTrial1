@@ -1,0 +1,19 @@
+<form class="search-form" (ngSubmit)="onSubmit()">
+  <i class="fas fa-search search-icon-left"></i>
+  <input
+    type="text"
+    class="search-input"
+    [placeholder]="placeholder"
+    [formControl]="searchControl"
+    aria-label="Search"
+  />
+  <button
+    *ngIf="searchControl.value"
+    type="button"
+    class="search-clear"
+    (click)="clearSearch()"
+    title="Clear"
+  >
+    <i class="fas fa-times"></i>
+  </button>
+</form>

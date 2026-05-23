@@ -1,0 +1,44 @@
+<nav class="site-nav">
+  <div class="nav-inner">
+    <a class="nav-brand" routerLink="/products">
+      <i class="fas fa-shopping-bag"></i>
+      <span>ShopHub</span>
+    </a>
+
+    <div class="nav-links">
+      <a class="nav-link" routerLink="/products" routerLinkActive="active">
+        <i class="fas fa-th-large"></i> Catalog
+      </a>
+      <a class="nav-link" routerLink="/cart" routerLinkActive="active">
+        <i class="fas fa-shopping-cart"></i> Cart
+        <span *ngIf="(cartCount$ | async) as count" class="cart-badge">{{ count }}</span>
+      </a>
+
+      <ng-container *ngIf="isLoggedIn$ | async; else guestLinks">
+        <a class="nav-link" routerLink="/orders" routerLinkActive="active">
+          <i class="fas fa-receipt"></i> Orders
+        </a>
+        <a *ngIf="isAdmin$ | async" class="nav-link nav-link-admin"
+           routerLink="/admin" routerLinkActive="active">
+          <i class="fas fa-cog"></i> Admin
+        </a>
+        <div class="nav-user" *ngIf="currentUser$ | async as user">
+          <i class="fas fa-user-circle"></i>
+          <span>{{ user.email }}</span>
+        </div>
+        <button class="btn-logout" (click)="logout()">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </ng-container>
+
+      <ng-template #guestLinks>
+        <a class="nav-link" routerLink="/login" routerLinkActive="active">Login</a>
+        <a class="btn-nav-register" routerLink="/register">Register</a>
+      </ng-template>
+    </div>
+  </div>
+</nav>
+
+<main class="main-content">
+  <router-outlet></router-outlet>
+</main>

@@ -1,0 +1,210 @@
+include:
+  - docker-compose.infra.yml
+
+services:
+  service-registry:
+    build: ./service-registry
+    container_name: service-registry
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8761/actuator/health | grep -q UP || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 30s
+
+  config-server:
+    build: ./config-server
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    environment:
+      - EUREKA_URI=http://service-registry:8761/eureka
+    depends_on:
+      service-registry:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8888/actuator/health | grep -q UP || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 30s
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - EUREKA_URI=http://service-registry:8761/eureka
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - REDIS_HOST=redis
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    ports:
+      - "8081:8081"
+    environment:
+      - EUREKA_URI=http://service-registry:8761/eureka
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - DB_HOST=postgres-user
+      - DB_PORT=5432
+      - DB_NAME=user_db
+      - REDIS_HOST=redis
+      - KAFKA_SERVERS=kafka:9092
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      postgres-user:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  product-service:
+    build: ./product-service
+    container_name: product-service
+    ports:
+      - "8082:8082"
+    environment:
+      - EUREKA_URI=http://service-registry:8761/eureka
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - DB_HOST=postgres-product
+      - DB_PORT=5432
+      - DB_NAME=product_db
+      - REDIS_HOST=redis
+      - KAFKA_SERVERS=kafka:9092
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      postgres-product:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  inventory-service:
+    build: ./inventory-service
+    container_name: inventory-service
+    ports:
+      - "8083:8083"
+    environment:
+      - EUREKA_URI=http://service-registry:8761/eureka
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - DB_HOST=postgres-inventory
+      - DB_PORT=5432
+      - DB_NAME=inventory_db
+      - KAFKA_SERVERS=kafka:9092
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      postgres-inventory:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  order-service:
+    build: ./order-service
+    container_name: order-service
+    ports:
+      - "8084:8084"
+    environment:
+      - EUREKA_URI=http://service-registry:8761/eureka
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - DB_HOST=postgres-order
+      - DB_PORT=5432
+      - DB_NAME=order_db
+      - KAFKA_SERVERS=kafka:9092
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      postgres-order:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  payment-service:
+    build: ./payment-service
+    container_name: payment-service
+    ports:
+      - "8085:8085"
+    environment:
+      - EUREKA_URI=http://service-registry:8761/eureka
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - DB_HOST=postgres-payment
+      - DB_PORT=5432
+      - DB_NAME=payment_db
+      - KAFKA_SERVERS=kafka:9092
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      postgres-payment:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  notification-service:
+    build: ./notification-service
+    container_name: notification-service
+    ports:
+      - "8086:8086"
+    environment:
+      - EUREKA_URI=http://service-registry:8761/eureka
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - KAFKA_SERVERS=kafka:9092
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  search-service:
+    build: ./search-service
+    container_name: search-service
+    ports:
+      - "8087:8087"
+    environment:
+      - EUREKA_URI=http://service-registry:8761/eureka
+      - CONFIG_SERVER_URI=http://config-server:8888
+      - ELASTICSEARCH_HOST=elasticsearch
+      - KAFKA_SERVERS=kafka:9092
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - api-gateway

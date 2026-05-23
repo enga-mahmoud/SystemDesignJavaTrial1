@@ -1,0 +1,56 @@
+<div class="page-container">
+
+  <div class="catalog-header">
+    <div>
+      <h1 class="catalog-title">Product Catalog</h1>
+      <p class="catalog-subtitle">Discover our latest collection</p>
+    </div>
+    <app-search-bar
+      placeholder="Search products..."
+      (searchQuery)="onSearch($event)">
+    </app-search-bar>
+  </div>
+
+  <div *ngIf="loading$ | async" class="loading-wrap">
+    <span class="spinner"></span> Loading products…
+  </div>
+
+  <div *ngIf="error$ | async as error" class="alert-error">{{ error }}</div>
+
+  <div class="product-grid">
+    <div *ngFor="let product of products$ | async" class="product-card">
+      <div class="product-card__img">
+        <i class="fas fa-box-open"></i>
+        <span *ngIf="product.categoryName" class="product-card__category">{{ product.categoryName }}</span>
+      </div>
+      <div class="product-card__body">
+        <h3 class="product-card__title">{{ product.name }}</h3>
+        <p class="product-card__desc">{{ product.description }}</p>
+      </div>
+      <div class="product-card__footer">
+        <span class="product-price">${{ product.price | number:'1.2-2' }}</span>
+        <div class="product-card__actions">
+          <a [routerLink]="['/products', product.id]" class="btn-icon" title="View details">
+            <i class="fas fa-eye"></i>
+          </a>
+          <button (click)="addToCart(product)" class="btn-add-cart">
+            <i class="fas fa-cart-plus"></i> Add
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="(products$ | async)?.length === 0 && !(loading$ | async)" class="empty-state">
+    <i class="fas fa-box-open"></i>
+    <h3>No products found</h3>
+    <p>Try a different search term or browse all products.</p>
+  </div>
+
+  <app-pagination
+    [currentPage]="(currentPage$ | async) ?? 0"
+    [totalPages]="(totalPages$ | async) ?? 0"
+    (pageChange)="onPageChange($event)">
+  </app-pagination>
+
+</div>

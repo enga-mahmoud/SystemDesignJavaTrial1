@@ -1,0 +1,47 @@
+<div class="page-container">
+
+  <a routerLink="/products" class="back-link">
+    <i class="fas fa-arrow-left"></i> Back to Catalog
+  </a>
+
+  <div *ngIf="loading$ | async" class="loading-wrap">
+    <span class="spinner"></span> Loading product…
+  </div>
+
+  <div *ngIf="error$ | async as error" class="alert-error">{{ error }}</div>
+
+  <div *ngIf="product$ | async as product" class="product-detail-card">
+    <div class="product-detail-img">
+      <i class="fas fa-box-open"></i>
+    </div>
+
+    <div class="product-detail-info">
+      <h1>{{ product.name }}</h1>
+      <span class="status-badge {{ product.status.toLowerCase() }}">
+        <i class="fas fa-circle" style="font-size:0.5em; margin-right:4px;"></i>
+        {{ product.status }}
+      </span>
+
+      <p class="product-detail-desc">{{ product.description }}</p>
+
+      <div class="product-detail-price">${{ product.price | number:'1.2-2' }}</div>
+
+      <div class="qty-row">
+        <label for="qty">Quantity</label>
+        <input
+          id="qty"
+          type="number"
+          class="qty-number"
+          [value]="quantity"
+          min="1"
+          max="99"
+          (change)="onQuantityChange($event)" />
+      </div>
+
+      <button class="btn-primary btn-lg" (click)="addToCart(product)" style="width:100%; max-width:280px;">
+        <i class="fas fa-cart-plus"></i> Add {{ quantity }} to Cart
+      </button>
+    </div>
+  </div>
+
+</div>

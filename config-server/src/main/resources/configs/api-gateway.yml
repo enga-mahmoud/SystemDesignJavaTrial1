@@ -1,0 +1,23 @@
+spring:
+  cloud:
+    gateway:
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:4200"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: true
+
+jwt:
+  public-key: |
+    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2a2rwplBQLzHPZe5TNJF
+    4OiKLSHLQLpQVDXY47TJ4Jm5FvRbKDhLiPFKgkM3sSRsJLEMrOYMreLHHFGxUuQ
+    DUMMY_PUBLIC_KEY_REPLACE_IN_PRODUCTION_WITH_REAL_RSA_KEY
+    AQAB
+
+rate-limit:
+  max-requests: 100
+  window-seconds: 60

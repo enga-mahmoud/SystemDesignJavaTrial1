@@ -1,0 +1,42 @@
+<div class="auth-wrapper">
+  <div class="auth-card">
+
+    <div class="auth-logo">
+      <i class="fas fa-shopping-bag"></i>
+      <span>ShopHub</span>
+    </div>
+
+    <h2>Welcome back</h2>
+    <p class="auth-subtitle">Sign in to your account</p>
+
+    <div *ngIf="error$ | async as error" class="alert-error">{{ error }}</div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <div class="form-group">
+        <label for="email">Email address</label>
+        <input id="email" type="email" formControlName="email" placeholder="you@example.com" />
+        <span *ngIf="form.get('email')?.invalid && form.get('email')?.touched" class="field-error">
+          Please enter a valid email
+        </span>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input id="password" type="password" formControlName="password" placeholder="Enter your password" />
+        <span *ngIf="form.get('password')?.invalid && form.get('password')?.touched" class="field-error">
+          Password is required
+        </span>
+      </div>
+
+      <button type="submit" class="btn-auth" [disabled]="form.invalid || (loading$ | async)">
+        <span *ngIf="!(loading$ | async)"><i class="fas fa-sign-in-alt" style="margin-right:6px"></i>Sign In</span>
+        <span *ngIf="loading$ | async"><i class="fas fa-spinner fa-spin" style="margin-right:6px"></i>Signing in…</span>
+      </button>
+    </form>
+
+    <p class="auth-footer">
+      Don't have an account? <a routerLink="/register">Create one</a>
+    </p>
+
+  </div>
+</div>

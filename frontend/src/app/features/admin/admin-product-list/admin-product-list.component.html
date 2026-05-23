@@ -1,0 +1,52 @@
+<div class="admin-page">
+  <div class="admin-header">
+    <h1 class="admin-title">Product Management</h1>
+    <a class="btn-primary" routerLink="/admin/products/new">+ New Product</a>
+  </div>
+
+  <nav class="admin-subnav">
+    <a class="admin-subnav__link" routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
+      <i class="fas fa-box"></i> Products
+    </a>
+    <a class="admin-subnav__link" routerLink="/admin/services" routerLinkActive="active">
+      <i class="fas fa-server"></i> Services
+    </a>
+  </nav>
+
+  <div *ngIf="error$ | async as error" class="alert-error">{{ error }}</div>
+
+  <div *ngIf="loading$ | async" class="loading-spinner">Loading products…</div>
+
+  <div *ngIf="!(loading$ | async)" class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Price</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let product of products$ | async">
+          <td>{{ product.name }}</td>
+          <td>${{ product.price | number:'1.2-2' }}</td>
+          <td>
+            <span class="status-badge" [class.status-active]="product.status === 'ACTIVE'"
+                  [class.status-deleted]="product.status === 'DELETED'">
+              {{ product.status }}
+            </span>
+          </td>
+          <td class="action-cell">
+            <button class="btn-edit" (click)="edit(product)">Edit</button>
+            <button class="btn-delete" (click)="delete(product)"
+                    [disabled]="submitting$ | async">Delete</button>
+          </td>
+        </tr>
+        <tr *ngIf="(products$ | async)?.length === 0">
+          <td colspan="4" class="empty-row">No products found.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

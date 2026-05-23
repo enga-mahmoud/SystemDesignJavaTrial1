@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(Get-ChildItem -Path \"D:\\\\Projects\\\\BitBucketLocalRepository\\\\SystemDesignJavaTrial1\" -Force | ForEach-Object { $_.FullName })",
+      "PowerShell(Get-ChildItem -Path \"D:\\\\Projects\\\\BitBucketLocalRepository\\\\SystemDesignJavaTrial1\\\\.claude\" -Recurse -Force | ForEach-Object { $_.FullName }; Write-Host \"---\"; Get-ChildItem -Path \"D:\\\\Projects\\\\BitBucketLocalRepository\\\\SystemDesignJavaTrial1\" -Force -Hidden | ForEach-Object { $_.FullName })",
+      "PowerShell(Get-ChildItem -Path \"D:\\\\Projects\\\\BitBucketLocalRepository\" -Force | ForEach-Object { $_.FullName })",
+      "Bash(docker pull *)",
+      "Bash(docker build *)",
+      "Bash(docker rm *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":9090\")",
+      "Bash(findstr \"LISTENING\")",
+      "Bash(tasklist /FI \"PID eq 25864\" /FO LIST)",
+      "Bash(tasklist /FI \"PID eq 25048\" /FO LIST)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "PowerShell(netstat *)",
+      "PowerShell($body = '{\"email\":\"newuser@test.com\",\"username\":\"newuser\",\"password\":\"password123\"}'; $headers = @{\"Content-Type\"=\"application/json\"}; try { $r = Invoke-WebRequest -Method POST -Uri \"http://localhost:4200/api/auth/register\" -Body $body -Headers $headers; \"Status: $\\($r.StatusCode\\)\"; $r.Content } catch { \"Error: $\\($_.Exception.Response.StatusCode\\) - $\\($_.Exception.Message\\)\" })",
+      "Bash(Start-Sleep -Seconds 20)",
+      "Bash(docker compose *)",
+      "Bash(grep -n \"frontend/\\\\|frontend$\" D:/MyProjects/SystemDesignJavaTrial1/plan.md)",
+      "PowerShell(Get-ChildItem -Path \"D:\\\\MyProjects\\\\SystemDesignJavaTrial1\\\\frontend\\\\src\\\\app\" -Recurse -Force | Select-Object FullName | ForEach-Object { $_.FullName } | Sort-Object)",
+      "PowerShell(Get-ChildItem -Path \"D:\\\\MyProjects\\\\SystemDesignJavaTrial1\\\\frontend\\\\src\\\\app\\\\features\\\\admin\" -Recurse -Force | Select-Object FullName | ForEach-Object { $_.FullName } | Sort-Object)",
+      "PowerShell(Get-ChildItem -Path \"D:\\\\MyProjects\\\\SystemDesignJavaTrial1\\\\frontend\\\\src\\\\app\\\\shared\\\\components\" -Recurse -Force | Select-Object FullName | ForEach-Object { $_.FullName } | Sort-Object)"
+    ]
+  }
+}

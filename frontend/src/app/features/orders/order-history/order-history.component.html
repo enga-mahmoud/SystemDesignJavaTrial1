@@ -1,0 +1,59 @@
+<div class="page-container">
+
+  <h1 class="catalog-title" style="margin-bottom:24px">
+    <i class="fas fa-receipt" style="color:var(--primary);margin-right:10px;font-size:1.4rem"></i>
+    Order History
+  </h1>
+
+  <div *ngIf="loading" class="loading-wrap">
+    <span class="spinner"></span> Loading orders…
+  </div>
+
+  <div *ngIf="error" class="alert-error">{{ error }}</div>
+
+  <div *ngIf="!loading && orders.length === 0 && !error" class="empty-state"
+       style="background:#fff;border-radius:var(--radius-xl);box-shadow:var(--shadow);">
+    <i class="fas fa-box-open"></i>
+    <h3>No orders yet</h3>
+    <p>When you place an order it will appear here.</p>
+    <a routerLink="/products" class="btn-primary">
+      <i class="fas fa-th-large"></i> Start Shopping
+    </a>
+  </div>
+
+  <div class="orders-list">
+    <div *ngFor="let order of orders" class="order-card">
+
+      <div class="order-card__header">
+        <span class="order-id">
+          <i class="fas fa-hashtag" style="font-size:0.7em"></i>
+          {{ order.id | slice:0:8 }}…
+        </span>
+        <span class="order-status {{ statusClass(order.status) }}">{{ order.status }}</span>
+        <span class="order-date">
+          <i class="fas fa-calendar-alt"></i>
+          {{ order.createdAt | date:'mediumDate' }}
+        </span>
+      </div>
+
+      <div class="order-card__items">
+        <div *ngFor="let item of order.items" class="order-item">
+          <span class="order-item__name">
+            <i class="fas fa-box" style="color:var(--gray-300);margin-right:6px;font-size:0.8em"></i>
+            {{ item.productName }}
+          </span>
+          <span class="order-item__qty">× {{ item.quantity }}</span>
+          <span class="order-item__price">${{ item.unitPrice | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <div class="order-card__footer">
+        <span class="order-total">
+          Total: <span>${{ order.total | number:'1.2-2' }}</span>
+        </span>
+      </div>
+
+    </div>
+  </div>
+
+</div>

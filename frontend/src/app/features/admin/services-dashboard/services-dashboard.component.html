@@ -1,0 +1,100 @@
+<div class="admin-page">
+
+  <div class="admin-header">
+    <div>
+      <h1 class="admin-title">Infrastructure Services</h1>
+      <p class="admin-subtitle">Quick links to all supporting services running alongside the platform.</p>
+    </div>
+  </div>
+
+  <nav class="admin-subnav">
+    <a class="admin-subnav__link" routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
+      <i class="fas fa-box"></i> Products
+    </a>
+    <a class="admin-subnav__link" routerLink="/admin/services" routerLinkActive="active">
+      <i class="fas fa-server"></i> Services
+    </a>
+  </nav>
+
+  <!-- Platform -->
+  <section class="svc-section">
+    <h2 class="svc-section-title">
+      <i class="fas fa-layer-group"></i> Platform
+    </h2>
+    <div class="svc-grid">
+      <div *ngFor="let s of platform" class="svc-card">
+        <div class="svc-card__icon" [style.background]="s.accent + '18'" [style.color]="s.accent">
+          <i class="fas" [class]="s.icon"></i>
+        </div>
+        <div class="svc-card__body">
+          <div class="svc-card__head">
+            <span class="svc-card__name">{{ s.name }}</span>
+            <span class="svc-port">:{{ s.port }}</span>
+          </div>
+          <p class="svc-card__desc">{{ s.description }}</p>
+        </div>
+        <div class="svc-card__footer">
+          <button class="btn-svc-open" (click)="open(s.url)">
+            <i class="fas fa-arrow-up-right-from-square"></i> Open
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Observability -->
+  <section class="svc-section">
+    <h2 class="svc-section-title">
+      <i class="fas fa-telescope"></i> Observability
+    </h2>
+    <div class="svc-grid">
+      <div *ngFor="let s of observability" class="svc-card">
+        <div class="svc-card__icon" [style.background]="s.accent + '18'" [style.color]="s.accent">
+          <i class="fas" [class]="s.icon"></i>
+        </div>
+        <div class="svc-card__body">
+          <div class="svc-card__head">
+            <span class="svc-card__name">{{ s.name }}</span>
+            <span class="svc-port">:{{ s.port }}</span>
+          </div>
+          <p class="svc-card__desc">{{ s.description }}</p>
+        </div>
+        <div class="svc-card__footer">
+          <button class="btn-svc-open" (click)="open(s.url)">
+            <i class="fas fa-arrow-up-right-from-square"></i> Open
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Data & Messaging -->
+  <section class="svc-section">
+    <h2 class="svc-section-title">
+      <i class="fas fa-database"></i> Data &amp; Messaging
+    </h2>
+    <div class="svc-grid">
+      <div *ngFor="let s of data" class="svc-card" [class.svc-card--no-ui]="!s.hasUi">
+        <div class="svc-card__icon" [style.background]="s.accent + '18'" [style.color]="s.accent">
+          <i class="fas" [class]="s.icon"></i>
+        </div>
+        <div class="svc-card__body">
+          <div class="svc-card__head">
+            <span class="svc-card__name">{{ s.name }}</span>
+            <span class="svc-port">:{{ s.port }}</span>
+          </div>
+          <p class="svc-card__desc">{{ s.description }}</p>
+        </div>
+        <div class="svc-card__footer">
+          <button *ngIf="s.hasUi" class="btn-svc-open" (click)="open(s.url)">
+            <i class="fas fa-arrow-up-right-from-square"></i> Open
+          </button>
+          <span *ngIf="!s.hasUi" class="svc-cli-label">
+            <i class="fas fa-terminal"></i> CLI only
+          </span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
