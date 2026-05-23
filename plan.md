@@ -158,11 +158,67 @@ The platform is intentionally designed to demonstrate **every major distributed 
 - Enables independent schema evolution, independent scaling (read replicas per service), and independent data retention policies.
 
 ### Redis
-- **Rate limiting:** Sliding window counter per IP using EVALSHA (atomic Lua script).
+- **Rate limiting:** Fixed-window counter per IP using an atomic Lua script (see below).
 - **Cache:** Product and category data (cache-aside pattern with TTL).
 - **Refresh tokens:** Stored as `refresh:{userId}` with 7-day TTL.
 - **Token blacklist:** Invalidated JWT IDs stored as `blacklist:{jti}` with TTL equal to remaining token lifetime.
 - **Pub/Sub:** Used for real-time cart synchronization (optional extension).
+
+#### Rate-Limiting Lua Script
+
+The script lives inline in `RateLimitFilter.java` and is sent to Redis via `ReactiveStringRedisTemplate.execute(RedisScript, ...)`:
+
+```lua
+local count = redis.call('INCR', KEYS[1])   -- ① atomically increment the IP counter
+if count == 1 then                            -- ② key was just created (first request in window)
+  redis.call('EXPIRE', KEYS[1], ARGV[1])     -- ③ arm the TTL — 60 s window starts now
+end
+return count                                  -- ④ Java side compares this to maxRequests (100)
+```
+
+**Line-by-line explanation**
+
+| Line | Command | What it does |
+|------|---------|--------------|
+| ① | `INCR KEYS[1]` | Atomically adds 1 to `rate:{clientIp}`. If the key doesn't exist Redis creates it at 0 first, so the first call always returns 1. |
+| ② | `if count == 1` | Detects that this is the first request in the window — the key was freshly created by the INCR above. |
+| ③ | `EXPIRE KEYS[1] ARGV[1]` | Sets a 60-second TTL. Called only once per window (when count == 1) so later requests don't accidentally reset the timer. |
+| ④ | `return count` | The Java filter compares this value to `maxRequests` (100). If `count > 100` → HTTP 429. |
+
+**Why Lua? The atomicity problem**
+
+Without Lua, the naïve two-command version has a race condition:
+
+```
+Request A:  INCR rate:1.2.3.4  → returns 1
+                                            Request B:  INCR rate:1.2.3.4 → returns 2
+                                            Request B:  count != 1, skip EXPIRE
+Request A:  EXPIRE rate:1.2.3.4 60
+```
+
+If Request B crashes or the connection drops between its INCR and the EXPIRE check, the key exists with no TTL — it lives forever and permanently blocks that IP. Redis executes an entire Lua script as a **single atomic operation**: no other client command can interleave between `INCR` and `EXPIRE`. This eliminates the race entirely.
+
+**Why INCR and not GET → check → SET?**
+
+`INCR` is natively atomic in Redis. A `GET`-then-`SET` pattern would require an optimistic lock (`WATCH / MULTI / EXEC`) to be safe under concurrency — far more complex and slower. `INCR` gives atomicity for free.
+
+**Fixed window vs sliding window**
+
+This implementation is a **fixed window** counter. The window resets when the Redis key expires (every 60 s). A known edge case: a client can burst up to 200 requests in a short span by sending 100 at the very end of one window and 100 at the very start of the next.
+
+A true **sliding window** uses a sorted set to track per-request timestamps:
+
+```lua
+-- sliding window (more accurate, ~4× more expensive)
+local now = tonumber(ARGV[1])
+local window = tonumber(ARGV[2])
+redis.call('ZREMRANGEBYSCORE', KEYS[1], 0, now - window)  -- evict old entries
+local count = redis.call('ZADD', KEYS[1], now, now)       -- record this request
+redis.call('EXPIRE', KEYS[1], window)
+return redis.call('ZCARD', KEYS[1])                        -- how many in window?
+```
+
+The fixed-window approach is a deliberate trade-off: it is O(1) per request (one INCR, one conditional EXPIRE) vs O(log n) for the sorted-set approach, and accurate enough for protecting against abuse at 100 req/min scale.
 
 ### Elasticsearch
 - **Role:** Full-text search and faceted browsing for the product catalog.
@@ -201,7 +257,7 @@ The platform is intentionally designed to demonstrate **every major distributed 
 **Filters (ordered):**
 1. `CorrelationIdFilter` — generates UUID correlation ID, attaches as `X-Correlation-Id` request and response header. All downstream logs include this ID.
 2. `JwtAuthFilter` — validates RS256 JWT from `Authorization: Bearer` header. **Identity header isolation:** `X-User-Id` and `X-User-Role` are stripped from every incoming request before any processing — client-supplied values are never trusted. On successful JWT validation, trusted values derived from the token claims are injected using `HttpHeaders.set()` (replace, not append). On public paths the same stripping applies; no identity headers reach downstream services from unauthenticated requests. Public paths: `/api/auth/**` (all methods), `GET /api/products/**`, `GET /api/search/**`, `/actuator/health` (exact match only — the full `/actuator/` tree is blocked).
-3. `RateLimitFilter` — Redis sliding window. Key: `rate:{clientIp}`. Limit: 100 requests/60 seconds. Returns HTTP 429 with `Retry-After` header if exceeded.
+3. `RateLimitFilter` — Redis fixed-window counter via atomic Lua script. Key: `rate:{clientIp}`. Limit: 100 requests per 60-second window. Returns HTTP 429 with `Retry-After` header if exceeded. Fails open on Redis errors (lets the request through rather than blocking all traffic). Client IP is read from `X-Forwarded-For` first (set by the ingress/load balancer), falling back to the TCP remote address. See the Redis section for a full explanation of the Lua script.
 
 **Circuit Breaker:** Each route has a Resilience4j circuit breaker. After 5 consecutive failures, circuit opens for 10 seconds. Fallback returns a JSON error body with a friendly message.
 
@@ -967,7 +1023,7 @@ public class OrderReadModel {
 | `category:tree`          | String | JSON category tree          | 3600s  | Rarely-changing hierarchical data            |
 | `refresh:{userId}`       | String | Opaque refresh token UUID   | 604800s| Refresh token store (7 days)                 |
 | `blacklist:{jti}`        | String | "1"                         | Remaining JWT TTL | Revoked JWT IDs        |
-| `rate:{clientIp}`        | String | Request count               | 60s    | Rate limiting sliding window                 |
+| `rate:{clientIp}`        | String | Request count (integer)     | 60s    | Rate limiting fixed-window counter (Lua INCR + EXPIRE) |
 | `cart:{userId}`          | Hash   | Map of skuId → CartItem     | 86400s | Server-side cart (optional, for cross-device)|
 
 ---
@@ -1107,7 +1163,7 @@ Client    API-GW    product-svc    Redis    PostgreSQL
 REST creates temporal coupling: both services must be simultaneously available. A network partition or service restart causes the REST call to fail. Kafka stores the message in a durable log. If inventory-service is restarting when order-service publishes `order.placed`, the message waits. When inventory-service comes back, it processes the message. **Durability is the key advantage.**
 
 ### Why Redis for Rate Limiting?
-Rate limiting requires atomic increment-and-check operations. In PostgreSQL this requires a row lock per IP, which under high traffic causes contention. Redis `INCR` is atomic and executes in microseconds. A Lua script atomically checks and increments without race conditions. PostgreSQL connection overhead alone (1-5ms) would dominate a 100 RPS rate-limit check.
+Rate limiting requires atomic increment-and-check operations. In PostgreSQL this requires a row lock per IP, which under high traffic causes contention. Redis `INCR` is atomic and executes in microseconds. The Lua script combines `INCR` and `EXPIRE` into a single atomic operation — without Lua, a crash between the two commands could leave a key with no TTL, permanently blocking an IP. PostgreSQL connection overhead alone (1-5ms) would dominate a 100 RPS rate-limit check.
 
 ### Why Elasticsearch over PostgreSQL for Search?
 PostgreSQL `tsvector` full-text search works for < 100k rows. At 10M products:
