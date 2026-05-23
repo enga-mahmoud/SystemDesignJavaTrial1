@@ -1,0 +1,12 @@
+apiVersion: v2
+name: ecommerce
+description: E-commerce microservices platform — Spring Boot, Kafka, Postgres, Redis, Elasticsearch
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - ecommerce
+  - spring-boot
+  - microservices
+maintainers:
+  - name: enga_mahmoud

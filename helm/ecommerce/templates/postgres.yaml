@@ -1,0 +1,85 @@
+{{- if .Values.postgres.enabled }}
+{{- range .Values.postgres.databases }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-{{ .name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "ecommerce.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: postgres-{{ .name }}
+spec:
+  serviceName: postgres-{{ .name }}
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-{{ .name }}
+  template:
+    metadata:
+      labels:
+        app: postgres-{{ .name }}
+    spec:
+      containers:
+        - name: postgres
+          image: {{ $.Values.postgres.image }}
+          imagePullPolicy: {{ $.Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: {{ .dbName }}
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            {{- toYaml $.Values.postgres.resources | nindent 12 }}
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres", "-d", "{{ .dbName }}"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 10
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- if $.Values.global.storageClass }}
+        storageClassName: {{ $.Values.global.storageClass }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ $.Values.postgres.storage }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-{{ .name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "ecommerce.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: postgres-{{ .name }}
+spec:
+  selector:
+    app: postgres-{{ .name }}
+  ports:
+    - port: 5432
+      targetPort: 5432
+{{- end }}
+{{- end }}
