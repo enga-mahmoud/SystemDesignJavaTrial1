@@ -5,6 +5,8 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +19,8 @@ import java.util.Base64;
 
 @Component
 public class JwtUtil {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtUtil.class);
 
     @Value("${jwt.public-key:}")
     private String publicKeyPem;
@@ -39,8 +43,12 @@ public class JwtUtil {
                 KeyFactory kf = KeyFactory.getInstance("RSA");
                 publicKey = kf.generatePublic(new X509EncodedKeySpec(keyBytes));
                 return;
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                // Fail loudly — a misconfigured RSA key is a deployment error, not a recoverable condition
+                throw new IllegalStateException("Failed to load JWT public key; check jwt.public-key config", e);
+            }
         }
+        log.warn("No RSA public key configured — falling back to HMAC. Set jwt.public-key for production.");
         // Fall back to HMAC — must match the secret used in user-service TokenService
         byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
         if (keyBytes.length < 32) {
