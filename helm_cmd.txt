@@ -1,0 +1,30 @@
+# Helm Commands for Ecommerce Microservices Platform
+
+# Install
+helm install ecommerce ./helm/ecommerce -n ecommerce --create-namespace
+
+# Install with value overrides
+helm install ecommerce ./helm/ecommerce \
+  -n ecommerce --create-namespace \
+  --set global.imageTag=v1.2.0 \
+  --set secrets.dbPassword=strongpassword \
+  --set ingress.host=myapp.example.com
+
+# Upgrade
+helm upgrade ecommerce ./helm/ecommerce -n ecommerce
+
+# Upgrade with value overrides
+helm upgrade ecommerce ./helm/ecommerce -n ecommerce \
+  --set global.imageTag=v1.3.0
+
+# Preview rendered manifests (dry run)
+helm template ecommerce ./helm/ecommerce -n ecommerce
+
+# Uninstall
+helm uninstall ecommerce -n ecommerce
+
+# Check release status
+helm status ecommerce -n ecommerce
+
+# List all releases
+helm list -n ecommerce
