@@ -1,0 +1,634 @@
+{
+  "info": {
+    "name": "Ecommerce Platform API",
+    "_postman_id": "ec0mm3rc3-1234-5678-90ab-cdef01234567",
+    "description": "Complete API collection for the E-Commerce microservices platform.\n\n## Quick Start\n1. Import this collection into Postman\n2. `base_url` defaults to `http://localhost:8080` (the API Gateway)\n3. Run **Auth → Login (Admin)** — `admin_token` is auto-saved\n4. Run **Auth → Login** — `access_token`, `refresh_token`, and `user_id` are auto-saved\n5. Create a product (admin), create inventory (admin), then place an order (user)\n\n## Auto-saved Variables\n| Variable | Set by |\n|---|---|\n| `access_token` | Auth → Login |\n| `admin_token` | Auth → Login (Admin) |\n| `refresh_token` | Auth → Login |\n| `user_id` | Auth → Login |\n| `product_id` | Products → Create Product |\n| `sku_id` | Inventory → Create Inventory Record |\n| `order_id` | Orders → Place Order |\n\n## Default Admin Credentials\n- Email: `admin@ecommerce.com`\n- Password: `Admin@1234`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",      "value": "http://localhost:8080", "type": "string" },
+    { "key": "access_token",  "value": "", "type": "string" },
+    { "key": "admin_token",   "value": "", "type": "string" },
+    { "key": "refresh_token", "value": "", "type": "string" },
+    { "key": "user_id",       "value": "", "type": "string" },
+    { "key": "product_id",    "value": "", "type": "string" },
+    { "key": "sku_id",        "value": "", "type": "string" },
+    { "key": "order_id",      "value": "", "type": "string" }
+  ],
+  "item": [
+
+    {
+      "name": "Auth",
+      "description": "User registration, login, token refresh, and logout. Login requests auto-save tokens to collection variables.",
+      "item": [
+
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Register a new user account. Always assigns the USER role."
+          }
+        },
+
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', json.accessToken);",
+                  "    pm.collectionVariables.set('refresh_token', json.refreshToken);",
+                  "    pm.collectionVariables.set('user_id', json.userId);",
+                  "    console.log('Saved access_token, refresh_token, user_id');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"Password123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Login with email and password. Saves `access_token`, `refresh_token`, and `user_id` to collection variables automatically."
+          }
+        },
+
+        {
+          "name": "Login (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('admin_token', json.accessToken);",
+                  "    console.log('Saved admin_token');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@ecommerce.com\",\n  \"password\": \"Admin@1234\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Login as the default admin user. Saves `admin_token` to collection variables automatically."
+          }
+        },
+
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', json.accessToken);",
+                  "    pm.collectionVariables.set('refresh_token', json.refreshToken);",
+                  "    console.log('Tokens rotated and saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/api/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "refresh"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\",\n  \"userId\": \"{{user_id}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Exchange a refresh token for a new access token + refresh token pair. The old refresh token is deleted (rotation). Saves new tokens automatically."
+          }
+        },
+
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "logout"]
+            },
+            "description": "Invalidates the current access token (adds jti to Redis blacklist) and deletes the refresh token from Redis."
+          }
+        },
+
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "health"]
+            },
+            "description": "Returns `{status: UP, service: user-service}`. No auth required."
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "Products",
+      "description": "Product catalog management. GET endpoints are public. POST/PUT/DELETE require an Admin JWT (use `admin_token`).",
+      "item": [
+
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/products?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products"],
+              "query": [
+                { "key": "q",          "value": "",   "description": "Full-text search term (SQL ILIKE)", "disabled": true },
+                { "key": "categoryId", "value": "",   "description": "Filter by category UUID", "disabled": true },
+                { "key": "page",       "value": "0",  "description": "Page number (0-based)" },
+                { "key": "size",       "value": "20", "description": "Page size" }
+              ]
+            },
+            "description": "Returns a paginated list of products. Optional `q` for text search and `categoryId` for category filter. Public — no auth required."
+          }
+        },
+
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", "{{product_id}}"]
+            },
+            "description": "Returns a single product. Cache-aside: first call hits PostgreSQL, subsequent calls within 600s are served from Redis. Public — no auth required."
+          }
+        },
+
+        {
+          "name": "Create Product",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('product_id', json.id);",
+                  "    console.log('Saved product_id:', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gaming Laptop Pro\",\n  \"description\": \"High-performance gaming laptop with RTX 4080\",\n  \"price\": 1299.99,\n  \"categoryId\": null\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Creates a new product. Requires ADMIN role. Writes to PostgreSQL and inserts an outbox record in the same transaction — an async scheduler publishes the event to Kafka which syncs Elasticsearch. Saves `product_id` automatically."
+          }
+        },
+
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", "{{product_id}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Gaming Laptop Pro (Updated)\",\n  \"description\": \"High-performance gaming laptop with RTX 4090\",\n  \"price\": 1199.99,\n  \"categoryId\": null\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Updates an existing product. Requires ADMIN role. Invalidates the Redis cache key for this product immediately. Publishes a `product.updated` event via the outbox."
+          }
+        },
+
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", "{{product_id}}"]
+            },
+            "description": "Soft-deletes a product (sets status = DELETED). Requires ADMIN role. Invalidates Redis cache and publishes `product.deleted` via the outbox. Returns 204 No Content."
+          }
+        },
+
+        {
+          "name": "Reindex (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products/reindex",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", "reindex"]
+            },
+            "description": "Queues outbox events for all ACTIVE products to re-sync the Elasticsearch index. Use when the search index is out of sync. Requires ADMIN role."
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "Inventory",
+      "description": "Stock management. All endpoints require auth; write operations are admin-level in practice.",
+      "item": [
+
+        {
+          "name": "Get Inventory",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/inventory/{{sku_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "inventory", "{{sku_id}}"]
+            },
+            "description": "Returns current stock levels (quantity, reservedQuantity) for a SKU."
+          }
+        },
+
+        {
+          "name": "Create Inventory Record",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('sku_id', json.skuId);",
+                  "    console.log('Saved sku_id:', json.skuId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/inventory",
+              "host": ["{{base_url}}"],
+              "path": ["api", "inventory"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skuId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567891\",\n  \"productId\": \"{{product_id}}\",\n  \"quantity\": 100\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Creates a new inventory record for a SKU. `skuId` is a unique identifier for a product variant (size, colour, etc). Saves `sku_id` automatically."
+          }
+        },
+
+        {
+          "name": "Reserve Stock",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/inventory/{{sku_id}}/reserve",
+              "host": ["{{base_url}}"],
+              "path": ["api", "inventory", "{{sku_id}}", "reserve"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"00000000-0000-0000-0000-000000000001\",\n  \"quantity\": 2\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Reserves N units for an order. Uses optimistic locking (`@Version`) to prevent overselling under concurrent requests — retries up to 3 times on conflict. Normally triggered by the Order Saga via Kafka, not called directly."
+          }
+        },
+
+        {
+          "name": "Release Stock",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/inventory/{{sku_id}}/release",
+              "host": ["{{base_url}}"],
+              "path": ["api", "inventory", "{{sku_id}}", "release"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"00000000-0000-0000-0000-000000000001\",\n  \"quantity\": 2\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Releases previously reserved units back to available stock. Triggered by the saga compensation path (e.g. payment failure)."
+          }
+        },
+
+        {
+          "name": "Restock",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/inventory/{{sku_id}}/restock?quantity=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "inventory", "{{sku_id}}", "restock"],
+              "query": [
+                { "key": "quantity", "value": "50", "description": "Number of units to add to stock" }
+              ]
+            },
+            "description": "Adds stock units to an existing SKU. Requires ADMIN role."
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "Orders",
+      "description": "Order placement and retrieval. All endpoints require a user JWT.",
+      "item": [
+
+        {
+          "name": "Place Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 202) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('order_id', json.orderId);",
+                  "    console.log('Saved order_id:', json.orderId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/orders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"skuId\": \"{{sku_id}}\",\n      \"productId\": \"{{product_id}}\",\n      \"quantity\": 2,\n      \"unitPrice\": 1299.99\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Places a new order. Returns 202 Accepted immediately — the order is processed asynchronously via the Saga (inventory reservation → payment → confirmation). Poll **Get Order by ID** to track status transitions: PENDING → INVENTORY_RESERVED → CONFIRMED (or CANCELLED). Saves `order_id` automatically."
+          }
+        },
+
+        {
+          "name": "Get Order by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/orders/{{order_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders", "{{order_id}}"]
+            },
+            "description": "Returns the current state of an order from the CQRS read model. Poll this after placing an order to observe the Saga state machine: PENDING → INVENTORY_RESERVED → CONFIRMED (happy path) or CANCELLED (failure path)."
+          }
+        },
+
+        {
+          "name": "Get My Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/orders/my?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders", "my"],
+              "query": [
+                { "key": "page", "value": "0",  "description": "Page number (0-based)" },
+                { "key": "size", "value": "20", "description": "Page size" }
+              ]
+            },
+            "description": "Returns paginated orders for the currently authenticated user. User ID is derived from the JWT — no need to pass it manually."
+          }
+        },
+
+        {
+          "name": "Get Orders by User ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/orders/user/{{user_id}}?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orders", "user", "{{user_id}}"],
+              "query": [
+                { "key": "page", "value": "0",  "description": "Page number (0-based)" },
+                { "key": "size", "value": "20", "description": "Page size" }
+              ]
+            },
+            "description": "Returns paginated orders for a specific user. Intended for admin use."
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "Payments",
+      "description": "Payment processing. Normally driven by the Order Saga via Kafka. These endpoints allow direct interaction for testing.",
+      "item": [
+
+        {
+          "name": "Charge Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payments/charge",
+              "host": ["{{base_url}}"],
+              "path": ["api", "payments", "charge"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{order_id}}\",\n  \"userId\": \"{{user_id}}\",\n  \"amount\": 2599.98,\n  \"idempotencyKey\": \"{{order_id}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Processes a payment charge. Idempotent — sending the same `idempotencyKey` twice returns the original result without a second charge. The payment service has a simulated 95% success rate (random). Publishes `payment.completed` or `payment.failed` via the outbox."
+          }
+        },
+
+        {
+          "name": "Get Payment by Order ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/payments/order/{{order_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "payments", "order", "{{order_id}}"]
+            },
+            "description": "Returns the payment record associated with an order."
+          }
+        }
+
+      ]
+    },
+
+    {
+      "name": "Search",
+      "description": "Elasticsearch-backed full-text product search. All endpoints are public (GET only).",
+      "item": [
+
+        {
+          "name": "Full-text Search",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/search?q=laptop&page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "search"],
+              "query": [
+                { "key": "q",        "value": "laptop",      "description": "Full-text search query" },
+                { "key": "category", "value": "",            "description": "Filter by category name", "disabled": true },
+                { "key": "minPrice", "value": "",            "description": "Minimum price filter", "disabled": true },
+                { "key": "maxPrice", "value": "",            "description": "Maximum price filter", "disabled": true },
+                { "key": "page",     "value": "0",           "description": "Page number (0-based)" },
+                { "key": "size",     "value": "20",          "description": "Page size" }
+              ]
+            },
+            "description": "Full-text search against Elasticsearch using a bool query with multi_match on `name` (boosted ×3) and `description`. Supports price-range and category facet filters. Index is kept in sync via the Kafka → search-service pipeline (eventual consistency, typically < 1s lag)."
+          }
+        },
+
+        {
+          "name": "Autocomplete",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/search/autocomplete?q=lap",
+              "host": ["{{base_url}}"],
+              "path": ["api", "search", "autocomplete"],
+              "query": [
+                { "key": "q", "value": "lap", "description": "Prefix to complete (min 2 chars recommended)" }
+              ]
+            },
+            "description": "Returns up to 10 product name suggestions using the edge-n-gram analyzer. Designed for search-as-you-type — debounce calls on the frontend (300ms recommended)."
+          }
+        }
+
+      ]
+    }
+
+  ]
+}
